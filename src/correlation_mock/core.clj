@@ -53,12 +53,13 @@
   
   (println "Starting pool loop")
   (async/go-loop []
-    (let [consumed-messages (consume/poll (:consumer C-P-map) 1000)]
-      (message-handler consumed-messages C-P-map)
-      (consume/commit-async (:consumer C-P-map)
-                            (fn commit-print [execption offsets]
-                              (if execption
-                                (println (format "Coommit error:\n%s" execption))))))
+    (if-let [consumed-messages (consume/poll (:consumer C-P-map) 1000)]
+      (do (message-handler consumed-messages C-P-map)
+       (consume/commit-async (:consumer C-P-map)
+                             (fn commit-print [execption offsets]
+                               (if execption
+                                 (println (format "Commit error:\n%s" execption))
+                                 (println (format "Commit done. offsets: %s" offsets)))))))
     (recur)))
 
 (defn -main
@@ -67,3 +68,4 @@
   (let [ C-P-map (init-kafka [["localhost" 9092]] "bob-1")]
     (consumer-listen C-P-map sam-manual-cmds-topic 200)
     (loop [] (recur))))
+
